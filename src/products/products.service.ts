@@ -8,9 +8,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Repository } from 'typeorm';
+import { validate as isUUID } from 'uuid';
 
 import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+// import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
@@ -45,11 +46,24 @@ export class ProductsService {
         });
     }
 
-    async findOne(id: string) {
-        const product = await this.productRepository.findOneBy({ id });
+    async findOne(param: string) {
+        let product: Product;
+
+        if (isUUID(param)) {
+            product = await this.productRepository.findOneBy({ id: param });
+        } else {
+            const queryBuilder = this.productRepository.createQueryBuilder();
+
+            product = await queryBuilder
+                .where('UPPER(title) =:title or slug =:slug', {
+                    title: param.toUpperCase(),
+                    slug: param.toLowerCase(),
+                })
+                .getOne();
+        }
 
         if (!product)
-            throw new NotFoundException(`Product with id: ${id} not found `);
+            throw new NotFoundException(`Product with ${param} not found `);
 
         return product;
     }
