@@ -1,41 +1,46 @@
 import {
-  IsString,
-  MinLength,
-  IsNumber,
-  IsPositive,
-  IsOptional,
-  IsInt,
-  IsArray,
-  IsIn,
+    IsString,
+    MinLength,
+    IsNumber,
+    IsPositive,
+    IsOptional,
+    IsInt,
+    IsArray,
+    IsIn,
 } from 'class-validator';
 
 export class CreateProductDto {
-  @IsString()
-  @MinLength(1)
-  title: string;
+    @IsString()
+    @MinLength(1)
+    title: string;
 
-  @IsNumber()
-  @IsPositive()
-  @IsOptional()
-  price?: number;
+    @IsNumber()
+    @IsPositive()
+    @IsOptional()
+    price?: number;
 
-  @IsString()
-  @IsOptional()
-  description?: string;
+    @IsString()
+    @IsOptional()
+    description?: string;
 
-  @IsString()
-  @IsOptional()
-  slug?: string;
+    @IsString()
+    @IsOptional()
+    slug?: string;
 
-  @IsInt()
-  @IsPositive()
-  @IsOptional()
-  stock?: number;
+    @IsInt()
+    @IsPositive()
+    @IsOptional()
+    stock?: number;
 
-  @IsString({ each: true })
-  @IsArray()
-  sizes: Array<string>;
+    @IsString({ each: true })
+    @IsArray()
+    sizes: Array<string>;
 
-  @IsIn(['men', 'women', 'kid', 'unisex'])
-  gender: string;
+    @IsIn(['men', 'women', 'kid', 'unisex'])
+    gender: string;
+
+    @IsArray()
+    @IsOptional()
+    @IsString({ each: true })
+    tags?: Array<string>;
 }
