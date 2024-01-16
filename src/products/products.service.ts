@@ -12,8 +12,8 @@ import { validate as isUUID } from 'uuid';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Product } from './entities/product.entity';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { Product, ProductImage } from './entities';
+import { PaginationDto } from '../common/dtos/pagination.dto';
 
 @Injectable()
 export class ProductsService {
@@ -22,20 +22,43 @@ export class ProductsService {
     constructor(
         @InjectRepository(Product)
         private readonly productRepository: Repository<Product>,
+
+        @InjectRepository(ProductImage)
+        private readonly productImageRepository: Repository<ProductImage>,
     ) {}
 
+    /**
+     * The `create` function creates a new product with the given details and saves it to the database,
+     * including any associated images.
+     * @param {CreateProductDto} createProductDto - The `createProductDto` is an object that contains
+     * the details of the product to be created. It may have the following properties:
+     * @returns an object that contains the product details and the images.
+     */
     async create(createProductDto: CreateProductDto) {
         try {
-            const product = this.productRepository.create(createProductDto);
+            const { images = [], ...productDetails } = createProductDto;
+
+            const product = this.productRepository.create({
+                ...productDetails,
+                images: images.map((url) =>
+                    this.productImageRepository.create({ url }),
+                ),
+            });
 
             await this.productRepository.save(product);
 
-            return product;
+            return { ...product, images };
         } catch (error) {
             this.handleDBExceptions(error);
         }
     }
 
+    /**
+     * The `findAll` function retrieves a list of products with pagination options.
+     * @param {PaginationDto} paginationDto - The `paginationDto` is an object that contains the
+     * pagination parameters for the `findAll` method. It has two properties:
+     * @returns a promise that resolves to an array of products.
+     */
     findAll(paginationDto: PaginationDto) {
         const { limit = 10, offset = 0 } = paginationDto;
 
@@ -46,6 +69,13 @@ export class ProductsService {
         });
     }
 
+    /**
+     * The `findOne` function retrieves a product from the database based on either its ID or its
+     * title/slug.
+     * @param {string} param - The `param` parameter is a string that represents either the ID, title,
+     * or slug of a product.
+     * @returns a `Product` object.
+     */
     async findOne(param: string) {
         let product: Product;
 
@@ -68,10 +98,21 @@ export class ProductsService {
         return product;
     }
 
+    /**
+     * The function updates a product with the given ID using the provided data and saves it to the
+     * database.
+     * @param {string} id - A string representing the id of the product to be updated.
+     * @param {UpdateProductDto} updateProductDto - The `updateProductDto` is an object that contains
+     * the updated information for a product. It typically includes properties such as `name`,
+     * `description`, `price`, etc. This object is used to update the corresponding product in the
+     * database.
+     * @returns the updated product.
+     */
     async update(id: string, updateProductDto: UpdateProductDto) {
         const product: Product = await this.productRepository.preload({
             id,
             ...updateProductDto,
+            images: [],
         });
 
         if (!product)
@@ -86,6 +127,11 @@ export class ProductsService {
         }
     }
 
+    /**
+     * The `remove` function asynchronously removes a product from the database using its ID.
+     * @param {string} id - The `id` parameter is a string that represents the unique identifier of the
+     * product that needs to be removed.
+     */
     async remove(id: string) {
         try {
             const product = await this.findOne(id);
@@ -96,6 +142,12 @@ export class ProductsService {
         }
     }
 
+    /**
+     * The function handles exceptions that occur during database operations and throws appropriate
+     * error messages.
+     * @param {any} error - The error parameter is of type "any", which means it can be any type of
+     * error object.
+     */
     private handleDBExceptions(error: any) {
         if (error.code === '23505') {
             throw new BadRequestException(error.detail);
