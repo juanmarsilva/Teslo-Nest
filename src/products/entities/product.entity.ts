@@ -57,13 +57,6 @@ export class Product {
     })
     tags: Array<string>;
 
-    // @Column({
-    //     type: 'text',
-    //     array: true,
-    //     default: [],
-    // })
-    // images: Array<string>;
-
     /*
      * The `@BeforeInsert()` decorator is used in TypeORM to specify a method that should be executed
      * before inserting a new record into the database. In this case, the `checkSlugInsert()` method is
