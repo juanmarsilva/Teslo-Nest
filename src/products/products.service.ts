@@ -54,26 +54,31 @@ export class ProductsService {
     }
 
     /**
-     * The `findAll` function retrieves a list of products with pagination options.
+     * The `findAll` function retrieves a list of products with pagination and includes their
+     * associated images.
      * @param {PaginationDto} paginationDto - The `paginationDto` is an object that contains the
      * pagination parameters for the `findAll` method. It has two properties:
-     * @returns a promise that resolves to an array of products.
+     * @returns a list of products.
      */
-    findAll(paginationDto: PaginationDto) {
+    async findAll(paginationDto: PaginationDto) {
         const { limit = 10, offset = 0 } = paginationDto;
 
-        return this.productRepository.find({
+        const products = await this.productRepository.find({
             take: limit,
             skip: offset,
-            // todo: relaciones
+            relations: {
+                images: true,
+            },
         });
+
+        return products;
     }
 
     /**
-     * The `findOne` function retrieves a product from the database based on either its ID or its
-     * title/slug.
-     * @param {string} param - The `param` parameter is a string that represents either the ID, title,
-     * or slug of a product.
+     * The `findOne` function retrieves a product from the database based on a given parameter, either
+     * by ID or by title/slug.
+     * @param {string} param - The parameter `param` is a string that represents either the ID of a
+     * product or the title/slug of a product.
      * @returns a `Product` object.
      */
     async findOne(param: string) {
@@ -82,13 +87,15 @@ export class ProductsService {
         if (isUUID(param)) {
             product = await this.productRepository.findOneBy({ id: param });
         } else {
-            const queryBuilder = this.productRepository.createQueryBuilder();
+            const queryBuilder =
+                this.productRepository.createQueryBuilder('product');
 
             product = await queryBuilder
                 .where('UPPER(title) =:title or slug =:slug', {
                     title: param.toUpperCase(),
                     slug: param.toLowerCase(),
                 })
+                .leftJoinAndSelect('product.images', 'prodImages')
                 .getOne();
         }
 
