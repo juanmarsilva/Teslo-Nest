@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { validate as isUUID } from 'uuid';
 
 import { CreateProductDto } from './dto/create-product.dto';
@@ -25,6 +25,8 @@ export class ProductsService {
 
         @InjectRepository(ProductImage)
         private readonly productImageRepository: Repository<ProductImage>,
+
+        private readonly dataSource: DataSource,
     ) {}
 
     /**
@@ -106,30 +108,58 @@ export class ProductsService {
     }
 
     /**
-     * The function updates a product with the given ID using the provided data and saves it to the
-     * database.
-     * @param {string} id - A string representing the id of the product to be updated.
-     * @param {UpdateProductDto} updateProductDto - The `updateProductDto` is an object that contains
-     * the updated information for a product. It typically includes properties such as `name`,
-     * `description`, `price`, etc. This object is used to update the corresponding product in the
-     * database.
+     * The function updates a product in the database, including its images, using a transaction to
+     * ensure data consistency.
+     * @param {string} id - The id parameter is a string that represents the unique identifier of the
+     * product that needs to be updated.
+     * @param {UpdateProductDto} updateProductDto - The `updateProductDto` parameter is an object that
+     * contains the updated information for a product. It typically includes properties such as the
+     * product's name, description, price, and any other fields that can be updated.
      * @returns the updated product.
      */
     async update(id: string, updateProductDto: UpdateProductDto) {
+        const { images, ...toUpdate } = updateProductDto;
+
         const product: Product = await this.productRepository.preload({
             id,
-            ...updateProductDto,
-            images: [],
+            ...toUpdate,
         });
 
         if (!product)
             throw new NotFoundException(`Product with id: ${id} not found`);
 
+        const queryRunner = this.dataSource.createQueryRunner();
+
+        await queryRunner.connect();
+
+        await queryRunner.startTransaction();
+
         try {
-            await this.productRepository.save(product);
+            if (images) {
+                await queryRunner.manager.delete(ProductImage, {
+                    product: { id },
+                });
+
+                product.images = images.map((url) =>
+                    this.productImageRepository.create({ url }),
+                );
+            } else {
+                product.images = await this.productImageRepository.findBy({
+                    product: { id },
+                });
+            }
+
+            await queryRunner.manager.save(product);
+
+            await queryRunner.commitTransaction();
+
+            await queryRunner.release();
 
             return product;
         } catch (error) {
+            await queryRunner.rollbackTransaction();
+            await queryRunner.release();
+
             this.handleDBExceptions(error);
         }
     }
