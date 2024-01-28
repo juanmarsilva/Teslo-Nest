@@ -170,13 +170,8 @@ export class ProductsService {
      * product that needs to be removed.
      */
     async remove(id: string) {
-        try {
-            const product = await this.findOne(id);
-
-            await this.productRepository.remove(product);
-        } catch (error) {
-            this.handleDBExceptions(error);
-        }
+        const product = await this.findOne(id);
+        await this.productRepository.remove(product);
     }
 
     /**
@@ -193,5 +188,19 @@ export class ProductsService {
         throw new InternalServerErrorException(
             'Unexpected error, checked server logs',
         );
+    }
+
+    /**
+     * The function deletes all products from the database using a query builder.
+     * @returns the result of the delete operation.
+     */
+    async deleteAllProducts() {
+        const query = this.productRepository.createQueryBuilder('product');
+
+        try {
+            return await query.delete().where({}).execute();
+        } catch (error) {
+            return this.handleDBExceptions(error);
+        }
     }
 }
