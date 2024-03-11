@@ -1,7 +1,11 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 
 import { AuthService } from './auth.service';
 import { CreateUserDto, LoginUserDto } from './dto';
+import { GetUser } from './decorators';
+import { User } from './entities/user.entity';
+import { RawHeaders } from 'src/common/decorators';
 
 @Controller('auth')
 export class AuthController {
@@ -20,8 +24,26 @@ export class AuthController {
         return this.authService.create(createUserDto);
     }
 
+    /* The `@Post('login')` decorator is specifying that the `loginUser` method should be invoked when
+    a POST request is made to the '/login' endpoint. */
     @Post('login')
     loginUser(@Body() loginUserDto: LoginUserDto) {
         return this.authService.logIn(loginUserDto);
+    }
+
+    @Get('private')
+    @UseGuards(AuthGuard())
+    testingPrivateRoute(
+        @RawHeaders() rawHeaders: Array<string>,
+        @GetUser() user: User,
+        @GetUser('email') userEmail: string,
+    ) {
+        return {
+            ok: true,
+            message: 'Testeando rutas privadas',
+            user,
+            userEmail,
+            rawHeaders,
+        };
     }
 }
