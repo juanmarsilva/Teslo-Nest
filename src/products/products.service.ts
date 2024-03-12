@@ -14,6 +14,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductImage } from './entities';
 import { PaginationDto } from '../common/dtos/pagination.dto';
+import { User } from '../auth/entities';
 
 @Injectable()
 export class ProductsService {
@@ -30,18 +31,24 @@ export class ProductsService {
     ) {}
 
     /**
-     * The `create` function creates a new product with the given details and saves it to the database,
-     * including any associated images.
-     * @param {CreateProductDto} createProductDto - The `createProductDto` is an object that contains
-     * the details of the product to be created. It may have the following properties:
-     * @returns an object that contains the product details and the images.
+     * The function creates a new product with associated images and saves it to the database.
+     * @param {CreateProductDto} createProductDto - The `createProductDto` parameter seems to be an
+     * object containing details for creating a product, such as its name, description, price, etc. It
+     * also includes an optional array of images for the product.
+     * @param {User} user - The `user` parameter in the `create` function represents the user who is
+     * creating the product. It is of type `User`, which likely contains information about the user
+     * such as their ID, name, email, etc. This user will be associated with the product being created
+     * in the database.
+     * @returns The `create` function is returning an object that includes the product details and
+     * images. It spreads the `product` object along with the `images` array in the return statement.
      */
-    async create(createProductDto: CreateProductDto) {
+    async create(createProductDto: CreateProductDto, user: User) {
         try {
             const { images = [], ...productDetails } = createProductDto;
 
             const product = this.productRepository.create({
                 ...productDetails,
+                user,
                 images: images.map((url) =>
                     this.productImageRepository.create({ url }),
                 ),
@@ -108,16 +115,21 @@ export class ProductsService {
     }
 
     /**
-     * The function updates a product in the database, including its images, using a transaction to
-     * ensure data consistency.
-     * @param {string} id - The id parameter is a string that represents the unique identifier of the
+     * This TypeScript function updates a product with the provided data, including handling images and
+     * transactions.
+     * @param {string} id - The `id` parameter is a string that represents the unique identifier of the
      * product that needs to be updated.
-     * @param {UpdateProductDto} updateProductDto - The `updateProductDto` parameter is an object that
-     * contains the updated information for a product. It typically includes properties such as the
-     * product's name, description, price, and any other fields that can be updated.
-     * @returns the updated product.
+     * @param {UpdateProductDto} updateProductDto - The `updateProductDto` parameter is an object
+     * containing the data that needs to be updated for a product. It likely includes properties such
+     * as name, description, price, etc. In the `update` method, the code is destructuring this object
+     * to separate the `images` property from the rest
+     * @param {User} user - The `user` parameter in the `update` method represents the user who is
+     * updating the product. This user is used to associate the product with the user who performed the
+     * update operation.
+     * @returns The `update` method is returning the updated `Product` entity after the update
+     * operation is completed.
      */
-    async update(id: string, updateProductDto: UpdateProductDto) {
+    async update(id: string, updateProductDto: UpdateProductDto, user: User) {
         const { images, ...toUpdate } = updateProductDto;
 
         const product: Product = await this.productRepository.preload({
@@ -149,6 +161,7 @@ export class ProductsService {
                 });
             }
 
+            product.user = user;
             await queryRunner.manager.save(product);
 
             await queryRunner.commitTransaction();
