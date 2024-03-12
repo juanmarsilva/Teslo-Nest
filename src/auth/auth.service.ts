@@ -83,6 +83,21 @@ export class AuthService {
     }
 
     /**
+     * The function `checkAuthStatus` asynchronously updates the user object by adding a JWT token
+     * based on the user's ID.
+     * @param {User} user - The `user` parameter is an object that represents a user. It likely
+     * contains information such as the user's id, username, email, and other relevant details.
+     * @returns The function `checkAuthStatus` is returning a modified `user` object with an added
+     * `token` property that is generated using the `getJwtToken` method with the user's `id`.
+     */
+    async checkAuthStatus(user: User) {
+        return {
+            ...user,
+            token: this.getJwtToken({ id: user.id }),
+        };
+    }
+
+    /**
      * The function `getJwtToken` generates a JWT token using the provided payload.
      * @param {JwtPayload} jwtPayload - JwtPayload is an object that contains the payload data to be
      * encoded into a JSON Web Token (JWT). This payload typically includes information such as user
