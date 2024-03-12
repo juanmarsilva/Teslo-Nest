@@ -3,10 +3,13 @@ import {
     BeforeUpdate,
     Column,
     Entity,
+    OneToMany,
     PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Entity()
+import { ProductImage } from './';
+
+@Entity({ name: 'products' })
 export class Product {
     @PrimaryGeneratedColumn('uuid')
     id: string;
@@ -57,12 +60,11 @@ export class Product {
     })
     tags: Array<string>;
 
-    // @Column({
-    //     type: 'text',
-    //     array: true,
-    //     default: [],
-    // })
-    // images: Array<string>;
+    @OneToMany(() => ProductImage, (productImage) => productImage.product, {
+        cascade: true,
+        eager: true,
+    })
+    images?: Array<ProductImage>;
 
     /*
      * The `@BeforeInsert()` decorator is used in TypeORM to specify a method that should be executed
